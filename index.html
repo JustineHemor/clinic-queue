@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ENT Clinic Queue</title>
+<style>
+:root{--bg:#e8edf1;--panel:#fff;--ink:#10222e;--mute:#5d7280;--line:#c9d4db;--teal:#0f5e6b;--amber:#f2a900;--amberInk:#3a2800;--ok:#1d7a4d;--bad:#b3261e;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0c1820;--panel:#13242e;--ink:#e8f0f4;--mute:#8aa2b0;--line:#26404d;--teal:#58b8c7;--amber:#f2b81f;--amberInk:#2a1d00;--ok:#4cc38a;--bad:#ff8a80;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0c1820;--panel:#13242e;--ink:#e8f0f4;--mute:#8aa2b0;--line:#26404d;--teal:#58b8c7;--amber:#f2b81f;--amberInk:#2a1d00;--ok:#4cc38a;--bad:#ff8a80;color-scheme:dark}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 "Bricolage Grotesque",system-ui,-apple-system,"Segoe UI",sans-serif;min-height:100vh}
+header{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;padding:16px clamp(16px,4vw,40px);border-bottom:1px solid var(--line)}
+h1{font-size:1.25rem;margin:0;font-weight:700;letter-spacing:-.01em}
+nav{display:flex;gap:4px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:4px}
+nav button{border:0;background:none;color:var(--mute);font:inherit;font-weight:600;padding:8px 16px;border-radius:7px;cursor:pointer}
+nav button[aria-selected="true"]{background:var(--teal);color:#fff}
+:root[data-theme="dark"] nav button[aria-selected="true"]{color:#06222a}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) nav button[aria-selected="true"]{color:#06222a}}
+button:focus-visible{outline:3px solid var(--amber);outline-offset:2px}
+main{padding:clamp(16px,4vw,40px);max-width:1100px;margin:0 auto}
+h2{font-size:1.5rem;margin:0 0 4px;letter-spacing:-.01em}
+.sub{color:var(--mute);margin:0 0 24px}
+.btn{font:inherit;font-weight:700;border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:12px 18px;border-radius:10px;cursor:pointer}
+.btn:hover:not(:disabled){border-color:var(--teal)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn.pri{background:var(--amber);color:var(--amberInk);border-color:var(--amber)}
+.btn.ghost{background:none;font-weight:500;color:var(--mute)}
+.row{display:flex;flex-wrap:wrap;gap:12px}
+.svc{flex:1 1 240px;text-align:left;padding:20px;border-radius:14px;border:2px solid var(--line);background:var(--panel);color:var(--ink);font:inherit;cursor:pointer;display:flex;flex-direction:column;gap:6px}
+.svc:hover{border-color:var(--teal)}
+.svc b{font-size:1.2rem}.svc span{color:var(--mute);font-size:.9rem}
+.svc .big{font-size:2.6rem;font-weight:800;color:var(--teal);line-height:1}
+.stub{position:relative;margin:28px 0;max-width:380px;background:var(--amber);color:var(--amberInk);border-radius:14px;padding:22px 24px 22px 28px;
+-webkit-mask:radial-gradient(circle 11px at 0 50%,#0000 98%,#000) ;mask:radial-gradient(circle 11px at 0 50%,#0000 98%,#000);animation:pop .35s ease-out}
+.stub .n{font-size:4rem;font-weight:800;line-height:1;letter-spacing:-.02em}
+.stub p{margin:4px 0 0}
+@keyframes pop{from{transform:translateY(10px) scale(.97);opacity:0}}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px}
+.seg{display:inline-flex;gap:4px;margin-bottom:16px}
+.seg button{font:inherit;font-weight:700;padding:8px 14px;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:8px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--teal);border-color:var(--teal);color:#fff}
+.now{font-size:4.5rem;font-weight:800;line-height:1;margin:6px 0;letter-spacing:-.02em}
+.now.idle{color:var(--mute);font-size:2rem;font-weight:600}
+.chip{display:inline-block;font-size:.8rem;font-weight:700;padding:2px 8px;border-radius:99px;background:var(--bg);color:var(--mute)}
+ul.list{list-style:none;margin:0;padding:0}
+ul.list li{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--line)}
+ul.list li:last-child{border:0}
+.tn{font-weight:800;font-size:1.1rem}
+.chip.pri{background:var(--amber);color:var(--amberInk)}
+.pri-opt{display:flex;gap:10px;align-items:center;margin:0 0 18px;padding:12px 14px;border:1px solid var(--line);border-radius:10px;background:var(--panel);max-width:520px;cursor:pointer}
+.pri-opt input{width:20px;height:20px;accent-color:var(--teal)}
+.empty{color:var(--mute);padding:12px 0}
+.disp{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:16px}
+.disp>*{min-width:0}
+.disp ul.list li{flex-wrap:wrap;justify-content:flex-start}
+.disp ul.list li .chip:last-child{margin-left:auto}
+@media (max-width:900px){.disp{grid-template-columns:1fr}}
+.cs{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:16px;min-width:0}
+.cs .card{text-align:center;padding:24px 12px;min-width:0;container-type:inline-size}
+.cs .chip{max-width:100%;white-space:normal}
+.cs .num{font-size:2.5rem;font-size:clamp(1.5rem,26cqi,5rem);font-weight:800;line-height:1.1;color:var(--teal);margin-top:8px;white-space:nowrap}
+.cs .card.flash{animation:fl 1.6s ease-out 2}
+@keyframes fl{0%,100%{background:var(--panel)}30%{background:var(--amber);color:var(--amberInk)}}
+.cs .card.flash .num{color:inherit}
+footer{display:flex;gap:8px;flex-wrap:wrap;margin-top:28px;align-items:center}
+.stats{display:flex;gap:24px;flex-wrap:wrap;margin-bottom:20px;color:var(--mute)}
+.stats b{color:var(--ink);font-size:1.3rem;display:block}
+[hidden]{display:none!important}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+</head>
+<body>
+<header>
+  <h1>ENT Clinic Queue</h1>
+  <nav role="tablist" aria-label="View">
+    <button role="tab" data-v="kiosk">Kiosk</button>
+    <button role="tab" data-v="counter">Room</button>
+    <button role="tab" data-v="display">Display</button>
+  </nav>
+</header>
+<main>
+  <section id="kiosk" hidden></section>
+  <section id="counter" hidden></section>
+  <section id="display" hidden></section>
+  <footer>
+    <button class="btn ghost" id="seed">Add 5 sample customers</button>
+    <button class="btn ghost" id="reset">Reset queue</button>
+    <span class="sub" style="margin:0">Open Kiosk, Room and Display in separate tabs: they stay in sync.</span>
+  </footer>
+</main>
+<script>
+const KEY='ent-queue-poc-v1',SVC={C:{name:'Consultation',min:10},H:{name:'Hearing test',min:15},P:{name:'Procedure',min:20}};
+const ROOMS=[{id:1,name:'Consult Room 1',svc:['C']},{id:2,name:'Consult Room 2',svc:['C']},{id:3,name:'Audiology booth',svc:['H']},{id:4,name:'Procedure room',svc:['P']}];
+const fresh=()=>({tickets:[],seq:{C:0,H:0,P:0},lastCall:null});
+let S=load(),view='kiosk',myRoom=1,mine=null,seenCall=0,wantPri=false;
+function load(){try{const r=localStorage.getItem(KEY);if(r)return JSON.parse(r)}catch(e){}return fresh()}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}render()}
+window.addEventListener('storage',e=>{if(e.key===KEY){try{S=e.newValue?JSON.parse(e.newValue):fresh()}catch(x){}render()}});
+const $=id=>document.getElementById(id);
+let AC=null,soundOn=false;
+function chime(){try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();if(AC.state==='suspended')AC.resume();const t=AC.currentTime;[[880,0],[659.25,.22]].forEach(([f,d])=>{const o=AC.createOscillator(),g=AC.createGain();o.type='sine';o.frequency.value=f;g.gain.setValueAtTime(0,t+d);g.gain.linearRampToValueAtTime(.25,t+d+.02);g.gain.exponentialRampToValueAtTime(.001,t+d+.6);o.connect(g);g.connect(AC.destination);o.start(t+d);o.stop(t+d+.65)})}catch(e){}}
+const room=id=>ROOMS.find(r=>r.id===id);
+const order=(a,b)=>(b.pri?1:0)-(a.pri?1:0)||a.at-b.at;
+const waiting=svcs=>S.tickets.filter(t=>t.status==='waiting'&&(!svcs||svcs.includes(t.svc))).sort(order);
+const serving=id=>S.tickets.find(t=>t.status==='serving'&&t.room===id);
+const label=t=>t.svc+String(t.n).padStart(3,'0');
+function avgMin(svc){const d=S.tickets.filter(t=>t.svc===svc&&t.status==='done'&&t.doneAt&&t.calledAt);
+  if(!d.length)return SVC[svc].min;return Math.max(1,d.reduce((s,t)=>s+(t.doneAt-t.calledAt),0)/d.length/60000)}
+const estWait=(svc,ahead)=>Math.max(1,Math.round(ahead*avgMin(svc)/ROOMS.filter(r=>r.svc.includes(svc)).length));
+function issue(svc){const n=++S.seq[svc];const t={id:Date.now()+'-'+svc+n,svc,n,pri:wantPri,status:'waiting',at:Date.now()};
+  S.tickets.push(t);mine=t.id;save()}
+function callNext(id){if(serving(id))return;const t=waiting(room(id).svc)[0];if(!t)return;
+  t.status='serving';t.room=id;t.calledAt=Date.now();S.lastCall={room:id,ts:Date.now()};save()}
+function recall(id){if(serving(id)){S.lastCall={room:id,ts:Date.now()};save()}}
+function finish(id,status){const t=serving(id);if(!t)return;t.status=status;t.doneAt=Date.now();save()}
+function requeue(id){const t=S.tickets.find(x=>x.id===id);if(t){t.status='waiting';t.at=Date.now();delete t.room;save()}}
+const pChip=t=>t.pri?'<span class="chip pri">Priority</span>':'';
+
+function renderKiosk(){
+  const stub=mine&&S.tickets.find(t=>t.id===mine);
+  let html=`<h2>Check in</h2><p class="sub">Choose your visit type. We’ll call your number. Names are never shown on the screen.</p>
+  <label class="pri-opt"><input type="checkbox" id="pri" ${wantPri?'checked':''}><span><b>Priority</b><br><span class="sub" style="margin:0">Senior citizen, PWD, pregnant, or urgent symptoms (bleeding, trouble breathing).</span></span></label><div class="row">`;
+  for(const k in SVC){const n=waiting([k]).length;
+    html+=`<button class="svc" data-issue="${k}"><b>${SVC[k].name}</b><span class="big">${k}</span><span>${n} waiting</span></button>`}
+  html+=`</div>`;
+  if(stub){const q=waiting([stub.svc]);const ahead=q.findIndex(t=>t.id===stub.id);
+    html+=`<div class="stub"><div>Your number${stub.pri?' · Priority':''}</div><div class="n">${label(stub)}</div><p>${SVC[stub.svc].name}</p><p><b>${
+      stub.status==='waiting'?`${ahead} ahead of you · about ${estWait(stub.svc,ahead+1)} min`:
+      stub.status==='serving'?`Please go to ${room(stub.room).name}`:
+      stub.status==='done'?'Visit complete':'Missed your call: please see the front desk'}</b></p></div>`}
+  $('kiosk').innerHTML=html;
+}
+
+function renderRoom(){
+  const r=room(myRoom),cur=serving(myRoom),w=waiting(r.svc),ns=S.tickets.filter(t=>t.status==='skipped'&&r.svc.includes(t.svc)).slice(-5);
+  const done=S.tickets.filter(t=>t.status==='done'&&r.svc.includes(t.svc)).length;
+  $('counter').innerHTML=`<h2>Room station</h2><p class="sub">Call the next patient for this room, then complete or mark a no-show.</p>
+  <div class="seg" role="group" aria-label="Room">${ROOMS.map(x=>`<button data-r="${x.id}" aria-pressed="${x.id===myRoom}">${x.name}</button>`).join('')}</div>
+  <div class="stats"><div><b>${w.length}</b>waiting</div><div><b>${done}</b>seen</div><div><b>${avgMin(r.svc[0]).toFixed(1)} min</b>avg ${SVC[r.svc[0]].name.toLowerCase()}</div></div>
+  <div class="grid"><div class="card"><div class="chip">${r.name}</div>
+  ${cur?`<div class="now">${label(cur)}</div><p class="sub" style="margin-bottom:16px">${SVC[cur.svc].name} ${pChip(cur)}</p>`:`<div class="now idle">Room free</div><p class="sub" style="margin-bottom:16px">${w.length?'Patients are waiting.':'No one is waiting.'}</p>`}
+  <div class="row"><button class="btn pri" data-a="next" ${cur||!w.length?'disabled':''}>Call next</button>
+  <button class="btn" data-a="recall" ${cur?'':'disabled'}>Recall</button>
+  <button class="btn" data-a="done" ${cur?'':'disabled'}>Complete</button>
+  <button class="btn" data-a="skip" ${cur?'':'disabled'}>No-show</button></div></div>
+  <div class="card"><b>Waiting for ${r.svc.map(k=>SVC[k].name.toLowerCase()).join(', ')}</b><ul class="list">${w.length?w.slice(0,8).map(t=>`<li><span class="tn">${label(t)}</span>${pChip(t)}<span class="sub" style="margin:0">${Math.max(0,Math.round((Date.now()-t.at)/60000))} min</span></li>`).join(''):'<li class="empty">Queue is empty. Check in a patient on the Kiosk tab.</li>'}</ul>
+  ${ns.length?`<b style="display:block;margin-top:14px">No-shows</b><ul class="list">${ns.map(t=>`<li><span class="tn">${label(t)}</span><button class="btn ghost" data-rq="${t.id}">Requeue</button></li>`).join('')}</ul>`:''}</div></div>`;
+}
+
+function renderDisplay(){
+  const lc=S.lastCall,w=waiting().slice(0,7),fl=lc&&lc.ts!==seenCall&&Date.now()-lc.ts<8000;
+  $('display').innerHTML=`<h2>Now calling</h2><p class="sub">Please go to the room shown next to your number. <button class="btn ghost" data-a="sound">${soundOn?'Sound on':'Enable sound'}</button></p>
+  <div class="disp"><div class="cs">${ROOMS.map(r=>{const t=serving(r.id);
+    return `<div class="card ${fl&&lc.room===r.id?'flash':''}"><div class="chip">${r.name}</div><div class="num">${t?label(t):'–'}</div></div>`}).join('')}</div>
+  <div class="card"><b>Up next</b><ul class="list">${w.length?w.map(t=>`<li><span class="tn">${label(t)}</span>${pChip(t)}<span class="chip">${SVC[t.svc].name}</span></li>`).join(''):'<li class="empty">No one waiting.</li>'}</ul></div></div>`;
+  if(lc)seenCall=lc.ts;
+  if(fl&&soundOn)chime();
+}
+
+function render(){
+  document.querySelectorAll('nav button').forEach(b=>b.setAttribute('aria-selected',b.dataset.v===view));
+  for(const v of ['kiosk','counter','display'])$(v).hidden=v!==view;
+  ({kiosk:renderKiosk,counter:renderRoom,display:renderDisplay})[view]();
+}
+function go(v){view=v;try{history.replaceState(null,'','#'+v)}catch(e){}render()}
+document.addEventListener('change',e=>{if(e.target.id==='pri')wantPri=e.target.checked});
+document.addEventListener('click',e=>{
+  const t=e.target.closest('button');if(!t)return;
+  if(t.dataset.v)go(t.dataset.v);
+  else if(t.dataset.issue){issue(t.dataset.issue);wantPri=false}
+  else if(t.dataset.r){myRoom=+t.dataset.r;render()}
+  else if(t.dataset.rq)requeue(t.dataset.rq);
+  else if(t.dataset.a==='next'){chime();callNext(myRoom)}
+  else if(t.dataset.a==='recall'){chime();recall(myRoom)}
+  else if(t.dataset.a==='sound'){soundOn=!soundOn;if(soundOn)chime();render()}
+  else if(t.dataset.a==='done')finish(myRoom,'done');
+  else if(t.dataset.a==='skip')finish(myRoom,'skipped');
+});
+$('seed').onclick=()=>{const k=Object.keys(SVC);for(let i=0;i<5;i++){wantPri=Math.random()<.2;issue(k[Math.floor(Math.random()*3)])}wantPri=false;mine=null;render()};
+$('reset').onclick=()=>{S=fresh();mine=null;save()};
+setInterval(render,30000);
+const h=location.hash.slice(1);go(['kiosk','counter','display'].includes(h)?h:'kiosk');
+window.addEventListener('hashchange',()=>{const h=location.hash.slice(1);if(['kiosk','counter','display'].includes(h)&&h!==view)go(h)});
+</script>
+</body>
+</html>
