@@ -153,7 +153,7 @@ function renderRoom(){
 
 function renderDisplay(){
   const lc=S.lastCall,w=waiting().slice(0,7),fl=lc&&lc.ts!==seenCall&&Date.now()-lc.ts<8000;
-  $('display').innerHTML=`<h2>Now calling</h2><p class="sub">Please go to the room shown next to your number. <button class="btn ghost" data-a="sound">${soundOn?'Sound on':'Enable sound'}</button></p>
+  $('display').innerHTML=`<h2>Now calling</h2><p class="sub">Please go to the room shown next to your number.</p>
   <div class="disp"><div class="cs">${ROOMS.map(r=>{const t=serving(r.id);
     return `<div class="card ${fl&&lc.room===r.id?'flash':''}"><div class="chip">${r.name}</div><div class="num">${t?label(t):'–'}</div></div>`}).join('')}</div>
   <div class="card"><b>Up next</b><ul class="list">${w.length?w.map(t=>`<li><span class="tn">${label(t)}</span>${pChip(t)}<span class="chip">${SVC[t.svc].name}</span></li>`).join(''):'<li class="empty">No one waiting.</li>'}</ul></div></div>`;
