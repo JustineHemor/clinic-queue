@@ -204,7 +204,7 @@ function render(){
   for(const v of ['kiosk','counter','display'])$(v).hidden=v!==view;
   ({kiosk:renderKiosk,counter:renderRoom,display:renderDisplay})[view]();
 }
-function go(v){view=v;try{history.replaceState(null,'','#'+v)}catch(e){}render()}
+function go(v){if(v==='display'&&S.lastCall)seenCall=S.lastCall.ts;view=v;try{history.replaceState(null,'','#'+v)}catch(e){}render()}
 document.addEventListener('change',e=>{if(e.target.id!=='fsvc')return;const k=e.target.value,sel=$('fserv');
   sel.innerHTML=k?'<option value="">Select…</option>'+SVC[k].opts.map(o=>`<option>${o}</option>`).join(''):'<option value="">Choose a visit type first</option>';
   sel.disabled=!k;$('fq').textContent=k?`${waiting([k]).length} waiting`:''});
@@ -220,6 +220,7 @@ document.addEventListener('click',e=>{
   else if(t.dataset.a==='next'){chime();callNext(myRoom)}
   else if(t.dataset.a==='recall'){chime();recall(myRoom)}
   else if(t.dataset.a==='kdone')closeTicket();
+  
   else if(t.dataset.a==='done')finish(myRoom,'done');
   else if(t.dataset.a==='skip')finish(myRoom,'skipped');
 });
