@@ -66,6 +66,21 @@ ul.list li:last-child{border:0}
 .cs .card.flash{animation:fl 1.6s ease-out 2}
 @keyframes fl{0%,100%{background:var(--panel)}30%{background:var(--amber);color:var(--amberInk)}}
 .cs .card.flash .num{color:inherit}
+.form{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;max-width:760px}
+.form label{display:flex;flex-direction:column;gap:4px;font-weight:600;font-size:.9rem;min-width:0}
+.form input:not([type=checkbox]),.form select,.form textarea{font:inherit;font-weight:400;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px 12px;width:100%;min-width:0}
+.form input:focus,.form select:focus,.form textarea:focus{outline:3px solid var(--amber);outline-offset:1px}
+.form .full{grid-column:1/-1}
+.form .chk{flex-direction:row;align-items:flex-start;gap:10px;font-weight:400}
+.form .chk input{width:20px;height:20px;accent-color:var(--teal);margin-top:2px}
+.form small{color:var(--mute);font-weight:400;min-height:1.2em}
+.det{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 14px;margin:12px 0 0;font-size:.92rem;text-align:left}
+.det dt{color:var(--mute)}.det dd{margin:0;overflow-wrap:anywhere}
+.sm{display:flex;gap:10px;align-items:center;flex-wrap:wrap;cursor:pointer}
+ul.list li details{width:100%}
+.kt{display:flex;flex-direction:column;align-items:center;text-align:center;min-height:65vh;justify-content:center}
+.kt .stub{margin:0 auto 16px;width:100%}
+.knote{max-width:380px;color:var(--mute);margin:0 0 16px}
 footer{display:flex;gap:8px;flex-wrap:wrap;margin-top:28px;align-items:center}
 .stats{display:flex;gap:24px;flex-wrap:wrap;margin-bottom:20px;color:var(--mute)}
 .stats b{color:var(--ink);font-size:1.3rem;display:block}
@@ -93,7 +108,7 @@ footer{display:flex;gap:8px;flex-wrap:wrap;margin-top:28px;align-items:center}
   </footer>
 </main>
 <script>
-const KEY='ent-queue-poc-v1',SVC={C:{name:'Consultation',min:10},H:{name:'Hearing test',min:15},P:{name:'Procedure',min:20}};
+const KEY='ent-queue-poc-v1',SVC={C:{name:'Consultation',min:10,opts:['Ear','Nose and sinus','Throat and voice','Head and neck','Follow-up','Other']},H:{name:'Hearing test',min:15,opts:['Pure-tone audiometry','Tympanometry','Hearing aid check','Other']},P:{name:'Procedure',min:20,opts:['Nasal endoscopy','Laryngoscopy','Ear wax removal','Minor procedure','Other']}};
 const ROOMS=[{id:1,name:'Consult Room 1',svc:['C']},{id:2,name:'Consult Room 2',svc:['C']},{id:3,name:'Audiology booth',svc:['H']},{id:4,name:'Procedure room',svc:['P']}];
 const fresh=()=>({tickets:[],seq:{C:0,H:0,P:0},lastCall:null});
 let S=load(),view='kiosk',myRoom=1,mine=null,seenCall=0,wantPri=false;
@@ -111,8 +126,15 @@ const label=t=>t.svc+String(t.n).padStart(3,'0');
 function avgMin(svc){const d=S.tickets.filter(t=>t.svc===svc&&t.status==='done'&&t.doneAt&&t.calledAt);
   if(!d.length)return SVC[svc].min;return Math.max(1,d.reduce((s,t)=>s+(t.doneAt-t.calledAt),0)/d.length/60000)}
 const estWait=(svc,ahead)=>Math.max(1,Math.round(ahead*avgMin(svc)/ROOMS.filter(r=>r.svc.includes(svc)).length));
-function issue(svc){const n=++S.seq[svc];const t={id:Date.now()+'-'+svc+n,svc,n,pri:wantPri,status:'waiting',at:Date.now()};
+const esc=v=>String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const openIds=new Set(),SEX=['Female','Male','Prefer not to say'];
+let showTicket=false,tLeft=0,tTimer=null;
+function closeTicket(){clearInterval(tTimer);showTicket=false;mine=null;render()}
+function openTicket(){showTicket=true;tLeft=20;clearInterval(tTimer);tTimer=setInterval(()=>{tLeft--;const c=$('kcd');if(c)c.textContent=tLeft;if(tLeft<=0)closeTicket()},1000);render();const b=$('kdone');if(b)b.focus({preventScroll:true});const st=document.querySelector('.kt .stub');if(st)st.scrollIntoView({block:'center',behavior:'smooth'})}
+function issue(svc,pri,p){const n=++S.seq[svc];const t={id:Date.now()+'-'+svc+n,svc,n,pri:!!pri,p:p||{},status:'waiting',at:Date.now()};
   S.tickets.push(t);mine=t.id;save()}
+function det(t){const p=t.p||{};if(!p.name)return '<p class="empty">No details provided.</p>';
+  return `<dl class="det"><dt>Name</dt><dd>${esc(p.name)}</dd><dt>Age / sex</dt><dd>${esc(p.age)} · ${esc(p.sex)}</dd><dt>Mobile</dt><dd>${esc(p.phone)||'–'}</dd><dt>Service</dt><dd>${SVC[t.svc].name}: ${esc(p.service)}</dd><dt>Concern</dt><dd>${esc(p.concern)||'–'}</dd><dt>Allergies / meds</dt><dd>${esc(p.allergies)||'–'}</dd></dl>`}
 function callNext(id){if(serving(id))return;const t=waiting(room(id).svc)[0];if(!t)return;
   t.status='serving';t.room=id;t.calledAt=Date.now();S.lastCall={room:id,ts:Date.now()};save()}
 function recall(id){if(serving(id)){S.lastCall={room:id,ts:Date.now()};save()}}
@@ -121,39 +143,50 @@ function requeue(id){const t=S.tickets.find(x=>x.id===id);if(t){t.status='waitin
 const pChip=t=>t.pri?'<span class="chip pri">Priority</span>':'';
 
 function renderKiosk(){
-  const stub=mine&&S.tickets.find(t=>t.id===mine);
-  let html=`<h2>Check in</h2><p class="sub">Choose your visit type. We’ll call your number. Names are never shown on the screen.</p>
-  <label class="pri-opt"><input type="checkbox" id="pri" ${wantPri?'checked':''}><span><b>Priority</b><br><span class="sub" style="margin:0">Senior citizen, PWD, pregnant, or urgent symptoms (bleeding, trouble breathing).</span></span></label><div class="row">`;
-  for(const k in SVC){const n=waiting([k]).length;
-    html+=`<button class="svc" data-issue="${k}"><b>${SVC[k].name}</b><span class="big">${k}</span><span>${n} waiting</span></button>`}
-  html+=`</div>`;
-  if(stub){const q=waiting([stub.svc]);const ahead=q.findIndex(t=>t.id===stub.id);
-    html+=`<div class="stub"><div>Your number${stub.pri?' · Priority':''}</div><div class="n">${label(stub)}</div><p>${SVC[stub.svc].name}</p><p><b>${
+  if(!$('kform')){
+    $('kiosk').innerHTML=`<div id="khead"><h2>Check in</h2><p class="sub">Please fill in your details. Your name is never shown on the public screen.</p></div>
+    <form id="kform" class="form card">
+    <label>Full name<input name="name" required maxlength="80" autocomplete="name"></label>
+    <label>Age<input name="age" type="number" min="0" max="120" required inputmode="numeric"></label>
+    <label>Sex<select name="sex" required><option value="">Select…</option>${SEX.map(x=>`<option>${x}</option>`).join('')}</select></label>
+    <label>Mobile number (optional)<input name="phone" type="tel" maxlength="20" autocomplete="tel"></label>
+    <label>Visit type<select name="svc" id="fsvc" required><option value="">Select…</option>${Object.keys(SVC).map(k=>`<option value="${k}">${SVC[k].name}</option>`).join('')}</select><small id="fq"></small></label>
+    <label>Specific service<select name="service" id="fserv" required disabled><option value="">Choose a visit type first</option></select></label>
+    <label class="full">Main concern or symptoms (optional)<textarea name="concern" rows="2" maxlength="300"></textarea></label>
+    <label class="full">Known allergies or current medications (optional)<input name="allergies" maxlength="120"></label>
+    <label class="chk full"><input type="checkbox" name="pri"><span><b>Priority</b>: senior citizen, PWD, pregnant, or urgent symptoms (bleeding, trouble breathing)</span></label>
+    <div class="full"><button class="btn pri" type="submit">Get my number</button></div></form><div id="kstub"></div>`;
+  }
+  const f=$('fsvc').value;$('fq').textContent=f?`${waiting([f]).length} waiting`:'';
+  const stub=mine&&S.tickets.find(t=>t.id===mine);let html='';
+  if(stub&&showTicket){const ahead=waiting([stub.svc]).findIndex(t=>t.id===stub.id);
+    html=`<div class="kt"><div class="stub"><div>Your number${stub.pri?' · Priority':''}</div><div class="n">${label(stub)}</div><p>${SVC[stub.svc].name}${stub.p&&stub.p.service?': '+esc(stub.p.service):''}</p><p><b>${
       stub.status==='waiting'?`${ahead} ahead of you · about ${estWait(stub.svc,ahead+1)} min`:
       stub.status==='serving'?`Please go to ${room(stub.room).name}`:
-      stub.status==='done'?'Visit complete':'Missed your call: please see the front desk'}</b></p></div>`}
-  $('kiosk').innerHTML=html;
+      stub.status==='done'?'Visit complete':'Missed your call: please see the front desk'}</b></p></div><p class="knote">Please remember your ticket number or take a photo of it.</p><button class="btn pri" id="kdone" data-a="kdone">Done</button><p class="sub" style="margin:10px 0 0">Closing automatically in <span id="kcd">${tLeft}</span>s</p></div>`}
+  $('kstub').innerHTML=html;const hide=!!(stub&&showTicket);$('kform').hidden=hide;$('khead').hidden=hide;
 }
 
 function renderRoom(){
   const r=room(myRoom),cur=serving(myRoom),w=waiting(r.svc),ns=S.tickets.filter(t=>t.status==='skipped'&&r.svc.includes(t.svc)).slice(-5);
   const done=S.tickets.filter(t=>t.status==='done'&&r.svc.includes(t.svc)).length;
-  $('counter').innerHTML=`<h2>Room station</h2><p class="sub">Call the next patient for this room, then complete or mark a no-show.</p>
+  const nm=t=>esc((t.p||{}).name||'Walk-in');
+  $('counter').innerHTML=`<h2>Room station</h2><p class="sub">Call the next patient for this room and review their details.</p>
   <div class="seg" role="group" aria-label="Room">${ROOMS.map(x=>`<button data-r="${x.id}" aria-pressed="${x.id===myRoom}">${x.name}</button>`).join('')}</div>
   <div class="stats"><div><b>${w.length}</b>waiting</div><div><b>${done}</b>seen</div><div><b>${avgMin(r.svc[0]).toFixed(1)} min</b>avg ${SVC[r.svc[0]].name.toLowerCase()}</div></div>
   <div class="grid"><div class="card"><div class="chip">${r.name}</div>
-  ${cur?`<div class="now">${label(cur)}</div><p class="sub" style="margin-bottom:16px">${SVC[cur.svc].name} ${pChip(cur)}</p>`:`<div class="now idle">Room free</div><p class="sub" style="margin-bottom:16px">${w.length?'Patients are waiting.':'No one is waiting.'}</p>`}
-  <div class="row"><button class="btn pri" data-a="next" ${cur||!w.length?'disabled':''}>Call next</button>
+  ${cur?`<div class="now">${label(cur)}</div><p style="margin:0"><b>${nm(cur)}</b> ${pChip(cur)}</p>${det(cur)}`:`<div class="now idle">Room free</div><p class="sub" style="margin-bottom:0">${w.length?'Patients are waiting.':'No one is waiting.'}</p>`}
+  <div class="row" style="margin-top:16px"><button class="btn pri" data-a="next" ${cur||!w.length?'disabled':''}>Call next</button>
   <button class="btn" data-a="recall" ${cur?'':'disabled'}>Recall</button>
   <button class="btn" data-a="done" ${cur?'':'disabled'}>Complete</button>
   <button class="btn" data-a="skip" ${cur?'':'disabled'}>No-show</button></div></div>
-  <div class="card"><b>Waiting for ${r.svc.map(k=>SVC[k].name.toLowerCase()).join(', ')}</b><ul class="list">${w.length?w.slice(0,8).map(t=>`<li><span class="tn">${label(t)}</span>${pChip(t)}<span class="sub" style="margin:0">${Math.max(0,Math.round((Date.now()-t.at)/60000))} min</span></li>`).join(''):'<li class="empty">Queue is empty. Check in a patient on the Kiosk tab.</li>'}</ul>
-  ${ns.length?`<b style="display:block;margin-top:14px">No-shows</b><ul class="list">${ns.map(t=>`<li><span class="tn">${label(t)}</span><button class="btn ghost" data-rq="${t.id}">Requeue</button></li>`).join('')}</ul>`:''}</div></div>`;
+  <div class="card"><b>Waiting for ${r.svc.map(k=>SVC[k].name.toLowerCase()).join(', ')}</b><ul class="list">${w.length?w.slice(0,8).map(t=>`<li style="display:block"><details data-id="${t.id}" ${openIds.has(t.id)?'open':''}><summary class="sm"><span class="tn">${label(t)}</span>${pChip(t)}<span>${nm(t)}</span><span class="sub" style="margin:0 0 0 auto">${Math.max(0,Math.round((Date.now()-t.at)/60000))} min</span></summary>${det(t)}</details></li>`).join(''):'<li class="empty">Queue is empty. Check in a patient on the Kiosk tab.</li>'}</ul>
+  ${ns.length?`<b style="display:block;margin-top:14px">No-shows</b><ul class="list">${ns.map(t=>`<li><span class="tn">${label(t)}</span><span>${nm(t)}</span><button class="btn ghost" data-rq="${t.id}">Requeue</button></li>`).join('')}</ul>`:''}</div></div>`;
 }
 
 function renderDisplay(){
   const lc=S.lastCall,w=waiting().slice(0,7),fl=lc&&lc.ts!==seenCall&&Date.now()-lc.ts<8000;
-  $('display').innerHTML=`<h2>Now calling</h2><p class="sub">Please go to the room shown next to your number.</p>
+  $('display').innerHTML=`<h2>Now calling</h2><p class="sub">Please go to the room shown next to your number. <button class="btn ghost" data-a="sound">${soundOn?'Sound on':'Enable sound'}</button></p>
   <div class="disp"><div class="cs">${ROOMS.map(r=>{const t=serving(r.id);
     return `<div class="card ${fl&&lc.room===r.id?'flash':''}"><div class="chip">${r.name}</div><div class="num">${t?label(t):'–'}</div></div>`}).join('')}</div>
   <div class="card"><b>Up next</b><ul class="list">${w.length?w.map(t=>`<li><span class="tn">${label(t)}</span>${pChip(t)}<span class="chip">${SVC[t.svc].name}</span></li>`).join(''):'<li class="empty">No one waiting.</li>'}</ul></div></div>`;
@@ -167,20 +200,27 @@ function render(){
   ({kiosk:renderKiosk,counter:renderRoom,display:renderDisplay})[view]();
 }
 function go(v){view=v;try{history.replaceState(null,'','#'+v)}catch(e){}render()}
-document.addEventListener('change',e=>{if(e.target.id==='pri')wantPri=e.target.checked});
+document.addEventListener('change',e=>{if(e.target.id!=='fsvc')return;const k=e.target.value,sel=$('fserv');
+  sel.innerHTML=k?'<option value="">Select…</option>'+SVC[k].opts.map(o=>`<option>${o}</option>`).join(''):'<option value="">Choose a visit type first</option>';
+  sel.disabled=!k;$('fq').textContent=k?`${waiting([k]).length} waiting`:''});
+document.addEventListener('submit',e=>{if(e.target.id!=='kform')return;e.preventDefault();const d=e.target.elements,g=n=>d[n].value.trim();
+  issue(d.svc.value,d.pri.checked,{name:g('name'),age:g('age'),sex:d.sex.value,phone:g('phone'),service:d.service.value,concern:g('concern'),allergies:g('allergies')});
+  e.target.reset();$('fserv').innerHTML='<option value="">Choose a visit type first</option>';$('fserv').disabled=true;$('fq').textContent='';openTicket()});
+document.addEventListener('toggle',e=>{const d=e.target;if(d.dataset&&d.dataset.id){d.open?openIds.add(d.dataset.id):openIds.delete(d.dataset.id)}},true);
 document.addEventListener('click',e=>{
   const t=e.target.closest('button');if(!t)return;
   if(t.dataset.v)go(t.dataset.v);
-  else if(t.dataset.issue){issue(t.dataset.issue);wantPri=false}
   else if(t.dataset.r){myRoom=+t.dataset.r;render()}
   else if(t.dataset.rq)requeue(t.dataset.rq);
   else if(t.dataset.a==='next'){chime();callNext(myRoom)}
   else if(t.dataset.a==='recall'){chime();recall(myRoom)}
+  else if(t.dataset.a==='kdone')closeTicket();
   else if(t.dataset.a==='sound'){soundOn=!soundOn;if(soundOn)chime();render()}
   else if(t.dataset.a==='done')finish(myRoom,'done');
   else if(t.dataset.a==='skip')finish(myRoom,'skipped');
 });
-$('seed').onclick=()=>{const k=Object.keys(SVC);for(let i=0;i<5;i++){wantPri=Math.random()<.2;issue(k[Math.floor(Math.random()*3)])}wantPri=false;mine=null;render()};
+$('seed').onclick=()=>{const N=['Maria Santos','Juan Dela Cruz','Ana Reyes','Pedro Garcia','Liza Mendoza','Carlo Bautista'],K=Object.keys(SVC),X=['Female','Male'],C=['Ear pain for 3 days','Stuffy nose and headaches','Sore throat, hoarse voice','Ringing in the left ear','Difficulty hearing'],R=a=>a[Math.floor(Math.random()*a.length)];
+  for(let i=0;i<5;i++){const k=R(K);issue(k,Math.random()<.2,{name:R(N),age:String(6+Math.floor(Math.random()*80)),sex:R(X),phone:'',service:R(SVC[k].opts),concern:R(C),allergies:''})}mine=null;render()};
 $('reset').onclick=()=>{S=fresh();mine=null;save()};
 setInterval(render,30000);
 const h=location.hash.slice(1);go(['kiosk','counter','display'].includes(h)?h:'kiosk');
