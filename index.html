@@ -119,7 +119,9 @@ function load(){try{const r=localStorage.getItem(KEY);if(r)return JSON.parse(r)}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}render()}
 window.addEventListener('storage',e=>{if(e.key===KEY){try{S=e.newValue?JSON.parse(e.newValue):fresh()}catch(x){}render()}});
 const $=id=>document.getElementById(id);
-let AC=null,soundOn=false;
+let AC=null,soundOn=true;
+function unlockAudio(){try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();if(AC.state==='suspended')AC.resume()}catch(e){}}
+['pointerdown','keydown'].forEach(ev=>document.addEventListener(ev,unlockAudio,{once:true}));
 function chime(){try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();if(AC.state==='suspended')AC.resume();const t=AC.currentTime;[[880,0],[659.25,.22]].forEach(([f,d])=>{const o=AC.createOscillator(),g=AC.createGain();o.type='sine';o.frequency.value=f;g.gain.setValueAtTime(0,t+d);g.gain.linearRampToValueAtTime(.25,t+d+.02);g.gain.exponentialRampToValueAtTime(.001,t+d+.6);o.connect(g);g.connect(AC.destination);o.start(t+d);o.stop(t+d+.65)})}catch(e){}}
 const room=id=>ROOMS.find(r=>r.id===id);
 const order=(a,b)=>(b.pri?1:0)-(a.pri?1:0)||a.at-b.at;
@@ -189,7 +191,7 @@ function renderRoom(){
 
 function renderDisplay(){
   const lc=S.lastCall,w=waiting().slice(0,7),fl=lc&&lc.ts!==seenCall&&Date.now()-lc.ts<8000;
-  $('display').innerHTML=`<h2>Now calling</h2><p class="sub">Please go to the room shown next to your number. <button class="btn ghost" data-a="sound">${soundOn?'Sound on':'Enable sound'}</button></p>
+  $('display').innerHTML=`<h2>Now calling</h2><p class="sub">Please go to the room shown next to your number.</p>
   <div class="disp"><div class="cs">${ROOMS.map(r=>{const t=serving(r.id);
     return `<div class="card ${fl&&lc.room===r.id?'flash':''}"><div class="chip">${r.name}</div><div class="num">${t?label(t):'–'}</div></div>`}).join('')}</div>
   <div class="card"><b>Up next</b><ul class="list">${w.length?w.map(t=>`<li><span class="tn">${label(t)}</span>${pChip(t)}<span class="chip">${SVC[t.svc].name}</span></li>`).join(''):'<li class="empty">No one waiting.</li>'}</ul></div></div>`;
@@ -218,7 +220,6 @@ document.addEventListener('click',e=>{
   else if(t.dataset.a==='next'){chime();callNext(myRoom)}
   else if(t.dataset.a==='recall'){chime();recall(myRoom)}
   else if(t.dataset.a==='kdone')closeTicket();
-  else if(t.dataset.a==='sound'){soundOn=!soundOn;if(soundOn)chime();render()}
   else if(t.dataset.a==='done')finish(myRoom,'done');
   else if(t.dataset.a==='skip')finish(myRoom,'skipped');
 });
